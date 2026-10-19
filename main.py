@@ -9,7 +9,9 @@ sys.path.insert(0, str(RAIZ / "src"))
 
 from estaciones.cobertura import calcular_alcances
 from estaciones.heuristicas import HEURISTICAS, construir_propuesta, resumir_propuesta
+from estaciones.informe import parrafo_justificacion, tabla_estaciones
 from estaciones.lectura import cargar_instancia
+from estaciones.mapa import crear_mapa
 from estaciones.optimo import espacio_de_busqueda, mejor_propuesta
 
 INSTANCIAS = ["pequena", "comuna", "ciudad"]
@@ -89,6 +91,52 @@ def parte_3(nombre):
     imprimir_resumen(resumir_propuesta(instancia, alcances, estaciones))
 
 
+def entregar_propuesta(instancia, alcances, resumenes, elegida, es_optima, nombre_archivo, titulo):
+    resumen = resumenes[elegida]
+    carpeta = RAIZ / "resultados"
+
+    ruta_mapa = crear_mapa(
+        instancia, alcances, resumen["estaciones"], carpeta / f"mapa_{nombre_archivo}.html", titulo
+    )
+    tabla = tabla_estaciones(instancia, alcances, resumen)
+    parrafo = parrafo_justificacion(instancia, resumenes, elegida, es_optima)
+
+    contenido = f"# {titulo}\n\n## Estaciones construidas\n\n{tabla}\n\n## Justificación\n\n{parrafo}\n"
+    ruta_informe = carpeta / f"propuesta_{nombre_archivo}.md"
+    ruta_informe.write_text(contenido, encoding="utf-8")
+
+    print(contenido)
+    print(f"Mapa: {ruta_mapa}")
+    print(f"Informe: {ruta_informe}\n")
+
+
+def parte_4():
+    instancia = cargar_instancia("ciudad")
+    alcances = calcular_alcances(instancia)
+    resumenes = {}
+    for etiqueta, criterio in HEURISTICAS.items():
+        estaciones = construir_propuesta(instancia, alcances, criterio)
+        resumenes[etiqueta] = resumir_propuesta(instancia, alcances, estaciones)
+    elegida = max(resumenes, key=lambda etiqueta: resumenes[etiqueta]["valor"])
+    entregar_propuesta(
+        instancia, alcances, resumenes, elegida, False, "ciudad",
+        "Propuesta para la instancia ciudad",
+    )
+
+    instancia = cargar_instancia("comuna")
+    alcances = calcular_alcances(instancia)
+    resumenes = {}
+    for etiqueta, criterio in HEURISTICAS.items():
+        estaciones = construir_propuesta(instancia, alcances, criterio)
+        resumenes[etiqueta] = resumir_propuesta(instancia, alcances, estaciones)
+    estaciones, _ = mejor_propuesta(instancia, alcances)
+    resumenes["optima"] = resumir_propuesta(instancia, alcances, estaciones)
+    entregar_propuesta(
+        instancia, alcances, resumenes, "optima", True, "comuna_optima",
+        "Mejor propuesta posible para la instancia comuna",
+    )
+
+
 def tabla_comparativa():
     filas = []
     for nombre in INSTANCIAS:
@@ -140,13 +188,16 @@ def tabla_comparativa():
 def main():
     lector = argparse.ArgumentParser()
     lector.add_argument("instancia", nargs="?", choices=INSTANCIAS)
-    lector.add_argument("--parte", type=int, choices=[1, 2, 3], default=1)
+    lector.add_argument("--parte", type=int, choices=[1, 2, 3, 4], default=1)
     lector.add_argument("--detalle", action="store_true")
     lector.add_argument("--tabla", action="store_true")
     argumentos = lector.parse_args()
 
     if argumentos.tabla:
         tabla_comparativa()
+        return
+    if argumentos.parte == 4:
+        parte_4()
         return
     if argumentos.instancia is None:
         lector.error("indica la instancia (pequena, comuna o ciudad) o usa --tabla")
