@@ -187,7 +187,7 @@ def tabla_comparativa():
 
 def main():
     lector = argparse.ArgumentParser()
-    lector.add_argument("instancia", nargs="?", choices=INSTANCIAS)
+    lector.add_argument("instancia", nargs="?")
     lector.add_argument("--parte", type=int, choices=[1, 2, 3, 4], default=1)
     lector.add_argument("--detalle", action="store_true")
     lector.add_argument("--tabla", action="store_true")
